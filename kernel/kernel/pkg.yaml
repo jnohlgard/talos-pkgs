@@ -39,6 +39,7 @@ steps:
         make -j $(nproc) modules_install INSTALL_MOD_PATH=/rootfs/usr INSTALL_MOD_STRIP=1
         depmod -b /rootfs/usr $KERNELRELEASE
         unlink /rootfs/usr/lib/modules/$KERNELRELEASE/build
+        cp -v Module.symvers /rootfs/usr/lib/modules/${KERNELRELEASE}/
 finalize:
   - from: /rootfs
     to: /

@@ -1,0 +1,91 @@
+name: nvidia-tegra-kernel-modules-pkg
+variant: scratch
+shell: /bin/sh
+dependencies:
+  - stage: base
+  - stage: kernel-build
+steps:
+  - sources:
+    # {{ if eq .ARCH "aarch64" }} This in fact is YAML comment, but Go templating instruction is evaluated by bldr
+    # See https://docs.nvidia.com/jetson/archives/r36.4.3/DeveloperGuide/SD/WorkingWithSources.html
+    # for descriptions of the repos
+    # Upstream Gerrit/gitiles archive plugin is unusable as source because the archives are regenerated on each request
+    # and the mtime of files is reset to now, resulting in non-constant digests.
+    # e.g. https://nv-tegra.nvidia.com/r/plugins/gitiles/linux-nv-oot/+archive/{{ .tegra_linux_nv_oot_version }}.tar.gz
+      - url: https://github.com/jnohlgard/nvidia-linux-hwpm/archive/{{ .tegra_linux_hwpm_version }}.tar.gz
+        destination: hwpm.tar.gz
+        sha256: "{{ .tegra_linux_hwpm_sha256 }}"
+        sha512: "{{ .tegra_linux_hwpm_sha512 }}"
+      - url: https://github.com/jnohlgard/nvidia-nvethernetrm/archive/{{ .tegra_kernel_nvethernetrm_version }}.tar.gz
+        destination: nvethernetrm.tar.gz
+        sha256: "{{ .tegra_kernel_nvethernetrm_sha256 }}"
+        sha512: "{{ .tegra_kernel_nvethernetrm_sha512 }}"
+      - url: https://github.com/jnohlgard/nvidia-linux-nv-oot/archive/{{ .tegra_linux_nv_oot_version }}.tar.gz
+        destination: nvidia-oot.tar.gz
+        sha256: "{{ .tegra_linux_nv_oot_sha256 }}"
+        sha512: "{{ .tegra_linux_nv_oot_sha512 }}"
+      - url: https://github.com/jnohlgard/nvidia-linux-nvgpu/archive/{{ .tegra_linux_nvgpu_version }}.tar.gz
+        destination: nvgpu.tar.gz
+        sha256: "{{ .tegra_linux_nvgpu_sha256 }}"
+        sha512: "{{ .tegra_linux_nvgpu_sha512 }}"
+      - url: https://github.com/jnohlgard/nvidia-linux-kernel-display-driver/archive/{{ .tegra_nvdisplay_version }}.tar.gz
+        destination: nvdisplay.tar.gz
+        sha256: "{{ .tegra_nvdisplay_sha256 }}"
+        sha512: "{{ .tegra_nvdisplay_sha512 }}"
+    # {{ else }} This in fact is YAML comment, but Go templating instruction is evaluated by bldr
+    # {{ end }} This in fact is YAML comment, but Go templating instruction is evaluated by bldr
+    env:
+      ARCH: {{ if eq .ARCH "aarch64"}}arm64{{ else }}unsupported{{ end }}
+      INSTALL_MOD_PATH: /rootfs/usr
+      INSTALL_MOD_STRIP: 1
+      INSTALL_MOD_DIR: extras
+      KBUILD_OUTPUT: /src
+      KERNEL_HEADERS: /src
+      KERNEL_SRC: /src
+      KERNEL_PATH: /src
+    prepare:
+      - |
+        mkdir -p hwpm
+        tar -xf hwpm.tar.gz --strip-components=1 -C hwpm
+      - |
+        mkdir -p nvidia-oot
+        tar -xf nvidia-oot.tar.gz --strip-components=1 -C nvidia-oot
+      - |
+        rm -rf nvidia-oot/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm
+        mkdir -p nvidia-oot/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm
+        tar -xf nvethernetrm.tar.gz --strip-components=1 \
+          -C nvidia-oot/drivers/net/ethernet/nvidia/nvethernet/nvethernetrm
+      - |
+        mkdir -p nvdisplay
+        tar -xf nvdisplay.tar.gz --strip-components=1 -C nvdisplay
+      - |
+        mkdir -p nvgpu
+        tar -xf nvgpu.tar.gz --strip-components=1 -C nvgpu
+    build:
+      - |
+        KERNELRELEASE=$(cat "${KERNEL_HEADERS}/include/config/kernel.release")
+        cp /pkg/Makefile.nvidia ./Makefile
+        make -j$(nproc) \
+          MODLIB="/rootfs/usr/lib/modules/${KERNELRELEASE}/" \
+          modules
+    install:
+      - |
+        KERNELRELEASE=$(cat "${KERNEL_HEADERS}/include/config/kernel.release")
+        MODLIB="/rootfs/usr/lib/modules/${KERNELRELEASE}/"
+        mkdir -p "${MODLIB}"
+        make -j$(nproc) \
+          MODLIB="${MODLIB}" \
+          modules_install
+        cp -t "${MODLIB}" \
+          "${KBUILD_OUTPUT}"/modules.order \
+          "${KBUILD_OUTPUT}"/modules.builtin \
+          "${KBUILD_OUTPUT}"/modules.builtin.modinfo
+    test:
+      - |
+        # https://www.kernel.org/doc/html/v4.15/admin-guide/module-signing.html#signed-modules-and-stripping
+        find /rootfs/usr/lib/modules -name '*.ko' -exec grep -FL '~Module signature appended~' {} \+
+      - |
+        fhs-validator /rootfs
+finalize:
+  - from: /rootfs
+    to: /

@@ -104,6 +104,7 @@ TARGETS += gasket-driver-pkg
 TARGETS += hailort-pkg
 TARGETS += nvidia-open-gpu-kernel-modules-lts-pkg
 TARGETS += nvidia-open-gpu-kernel-modules-production-pkg
+TARGETS += nvidia-tegra-kernel-modules-pkg
 TARGETS += tenstorrent-pkg
 TARGETS += xdma-driver-pkg
 TARGETS += zfs-pkg

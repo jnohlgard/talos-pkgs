@@ -1,0 +1,83 @@
+From 75e93940f5241ebd61579c4d2332264564b0d762 Mon Sep 17 00:00:00 2001
+From: Narayan Reddy <narayanr@nvidia.com>
+Date: Mon, 23 Aug 2021 01:53:58 +0530
+Subject: [PATCH] UBUNTU: SAUCE: phy: add 10G, 5G for fixed link
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+BugLink: https://bugs.launchpad.net/bugs/2001557
+
+Issue: currently there is no support for
+10G, 5G fixed link speed
+
+Fix: Add 10G and 5G speed entries for the
+fixed link case
+
+Bug 3836720
+Bug 200765637
+
+Signed-off-by: Revanth Kumar Uppala <ruppala@nvidia.com>
+Signed-off-by: Narayan Reddy <narayanr@nvidia.com>
+Signed-off-by: Kartik <kkartik@nvidia.com>
+Acked-by: Brad Figg <bfigg@nvidia.com>
+Acked-by: Jacob Martin <jacob.martin@canonical.com>
+Acked-by: Ian May <ian.may@canonical.com>
+Signed-off-by: Brad Figg <bfigg@nvidia.com>
+Signed-off-by: Joakim Nohlgård <joakim.nohlgard@mantasystems.com>
+---
+ drivers/net/phy/swphy.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/net/phy/swphy.c b/drivers/net/phy/swphy.c
+index 59f1ba4d49bc..8222fb41bec7 100644
+--- a/drivers/net/phy/swphy.c
++++ b/drivers/net/phy/swphy.c
+@@ -8,6 +8,7 @@
+  *         Anton Vorontsov <avorontsov@ru.mvista.com>
+  *
+  * Copyright (c) 2006-2007 MontaVista Software, Inc.
++ * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+  */
+ #include <linux/export.h>
+ #include <linux/mii.h>
+@@ -29,6 +30,8 @@ enum {
+ 	SWMII_SPEED_10 = 0,
+ 	SWMII_SPEED_100,
+ 	SWMII_SPEED_1000,
++	SWMII_SPEED_5000,
++	SWMII_SPEED_10000,
+ 	SWMII_DUPLEX_HALF = 0,
+ 	SWMII_DUPLEX_FULL,
+ };
+@@ -51,6 +54,16 @@ static const struct swmii_regs speed[] = {
+ 		.lpagb = LPA_1000FULL | LPA_1000HALF,
+ 		.estat = ESTATUS_1000_TFULL | ESTATUS_1000_THALF,
+ 	},
++	[SWMII_SPEED_5000] = {
++		.bmsr  = BMSR_ESTATEN,
++		.lpagb = LPA_1000FULL | LPA_1000HALF,
++		.estat = ESTATUS_1000_TFULL | ESTATUS_1000_THALF,
++	},
++	[SWMII_SPEED_10000] = {
++		.bmsr  = BMSR_ESTATEN,
++		.lpagb = LPA_1000FULL | LPA_1000HALF,
++		.estat = ESTATUS_1000_TFULL | ESTATUS_1000_THALF,
++	},
+ };
+ 
+ static const struct swmii_regs duplex[] = {
+@@ -71,6 +84,10 @@ static const struct swmii_regs duplex[] = {
+ static int swphy_decode_speed(int speed)
+ {
+ 	switch (speed) {
++	case 10000:
++		return SWMII_SPEED_10000;
++	case 5000:
++		return SWMII_SPEED_5000;
+ 	case 1000:
+ 		return SWMII_SPEED_1000;
+ 	case 100:
+-- 
+2.49.0
+

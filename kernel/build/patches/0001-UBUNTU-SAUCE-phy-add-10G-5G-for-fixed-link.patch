@@ -1,4 +1,4 @@
-From 75e93940f5241ebd61579c4d2332264564b0d762 Mon Sep 17 00:00:00 2001
+From f035963d1d7c168d0498c02c952499a151b06a83 Mon Sep 17 00:00:00 2001
 From: Narayan Reddy <narayanr@nvidia.com>
 Date: Mon, 23 Aug 2021 01:53:58 +0530
 Subject: [PATCH] UBUNTU: SAUCE: phy: add 10G, 5G for fixed link
@@ -26,9 +26,25 @@ Acked-by: Ian May <ian.may@canonical.com>
 Signed-off-by: Brad Figg <bfigg@nvidia.com>
 Signed-off-by: Joakim Nohlgård <joakim.nohlgard@mantasystems.com>
 ---
- drivers/net/phy/swphy.c | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+ drivers/net/phy/fixed_phy.c |  4 ++++
+ drivers/net/phy/swphy.c     | 17 +++++++++++++++++
+ 2 files changed, 21 insertions(+)
 
+diff --git a/drivers/net/phy/fixed_phy.c b/drivers/net/phy/fixed_phy.c
+index aef739c20ac4..e6c258fcc574 100644
+--- a/drivers/net/phy/fixed_phy.c
++++ b/drivers/net/phy/fixed_phy.c
+@@ -274,6 +274,10 @@ static struct phy_device *__fixed_phy_register(unsigned int irq,
+ 	phy->is_pseudo_fixed_link = true;
+ 
+ 	switch (status->speed) {
++	case SPEED_10000:
++		linkmode_set_bit(ETHTOOL_LINK_MODE_10000baseT_Full_BIT,
++				 phy->supported);
++		fallthrough;
+ 	case SPEED_1000:
+ 		linkmode_set_bit(ETHTOOL_LINK_MODE_1000baseT_Half_BIT,
+ 				 phy->supported);
 diff --git a/drivers/net/phy/swphy.c b/drivers/net/phy/swphy.c
 index 59f1ba4d49bc..8222fb41bec7 100644
 --- a/drivers/net/phy/swphy.c
@@ -79,5 +95,5 @@ index 59f1ba4d49bc..8222fb41bec7 100644
  		return SWMII_SPEED_1000;
  	case 100:
 -- 
-2.49.0
+2.50.1
 
